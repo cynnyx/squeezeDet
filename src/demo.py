@@ -152,7 +152,9 @@ def image_demo():
 
   with tf.Graph().as_default():
     # Load model
-    mc = kitti_squeezeDet_config()
+    #mc = kitti_squeezeDet_config()
+    #mc = kitti_squeezeDetPlus_config()
+    mc = kitti_squeezeDet_resized_config()
     mc.BATCH_SIZE = 1
     # model parameters will be restored from checkpoint
     mc.LOAD_PRETRAINED_MODEL = False
@@ -169,16 +171,26 @@ def image_demo():
         im = cv2.resize(im, (mc.IMAGE_WIDTH, mc.IMAGE_HEIGHT))
         input_image = im - mc.BGR_MEANS
 
-        # Detect 
+        # Detect
+        t_before = time.time()
         det_boxes, det_probs, det_class = sess.run(
             [model.det_boxes, model.det_probs, model.det_class],
             feed_dict={model.image_input:[input_image], model.keep_prob: 1.0})
 
         # Filter
+        t_start_filter = time.time()
         final_boxes, final_probs, final_class = model.filter_prediction(
             det_boxes[0], det_probs[0], det_class[0])
 
-        keep_idx    = [idx for idx in range(len(final_probs)) \
+        t_after = time.time()
+
+        time_detection = t_start_filter - t_before
+        time_filter = t_start_filter - t_start_filter
+
+        print("Time for sess.run: " + str(time_detection))
+        print("Time for filter prediction: " + str(time_filter))
+
+        keep_idx = [idx for idx in range(len(final_probs)) \
                           if final_probs[idx] > mc.PLOT_PROB_THRESH]
         final_boxes = [final_boxes[idx] for idx in keep_idx]
         final_probs = [final_probs[idx] for idx in keep_idx]
